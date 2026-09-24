@@ -98,9 +98,6 @@ try:
             df.columns = df.columns.str.strip()
             return df
 
-        try:
-            df = cargar_datos()
-
 
 except Exception as e:
     st.error(f"Error al cargar el archivo Excel: {e}")
