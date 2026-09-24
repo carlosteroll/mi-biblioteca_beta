@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
+import time
 
 # Configuración de la página
 st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚")
@@ -39,28 +40,44 @@ try:
         
         if api_key:
             genai.configure(api_key=api_key)
-            
-            # Usamos el modelo más reciente requerido por la API de Google
             model = genai.GenerativeModel('gemini-3.8-flash')
             
-            contexto_libros = df.to_string(index=False)
+            # Reducimos el tamaño del texto convirtiendo el DataFrame a un formato más compacto
+            contexto_libros = df.to_csv(index=False)
+            
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("Consultar") and pregunta:
                 prompt = f"""
                 Eres el bibliotecario virtual de mi biblioteca personal. 
-                Esta es la lista completa de mis libros con sus ubicaciones y detalles:
+                Esta es la lista completa de mis libros con sus ubicaciones y detalles (en formato CSV):
                 
                 {contexto_libros}
                 
-                Responde a la consulta del usuario basándote en la lista de libros. 
+                Responde a la consulta del usuario basándote únicamente en la lista de libros anterior. 
                 Dile qué libro o libros le recomiendas y especifica exactamente en qué estantería, balda u otra ubicación se encuentran según los datos.
                 
-                Consulta: {pregunta}
+                Consulta del usuario: {pregunta}
                 """
                 
-                response = model.generate_content(prompt)
-                st.write(response.text)
+                # Reintento automático en caso de sobrepasar el límite de tasa por un par de segundos
+                exito = False
+                intentos = 0
+                while not exito and intentos < 3:
+                    try:
+                        with st.spinner("Consultando a la IA..."):
+                            response = model.generate_content(prompt)
+                            st.write(response.text)
+                            exito = True
+                    except Exception as err:
+                        if "429" in str(err):
+                            intentos += 1
+                            time.sleep(2)  # Esperar 2 segundos antes de reintentar
+                        else:
+                            st.error(f"Error en la consulta: {err}")
+                            break
+                if not exito and intentos >= 3:
+                    st.warning("El servidor de IA está saturado momentáneamente. Por favor, espera unos segundos y vuelve a pulsar Consultar.")
         else:
             st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit (Settings > Secrets).")
 
