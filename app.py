@@ -1,27 +1,43 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+from groq import Groq
 
 # 1. Configuración de la página
-st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚", layout="wide")
+st.set_page_config(
+    page_title="Mi Biblioteca Personal", 
+    page_icon="📚", 
+    layout="wide"
+)
 
-# CSS Personalizado
+# 2. CSS Personalizado para animaciones y diseño
 st.markdown("""
     <style>
-    /* Estilo general y botones */
+    /* Estilo general y animaciones de botones */
     .stButton>button {
         border-radius: 10px;
         font-weight: bold;
         transition: all 0.3s ease;
+        background-color: #4F46E5;
+        color: white;
     }
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
-    /* Métrica / Contador destacado */
+    
+    /* Contadores elevados */
     [data-testid="stMetricValue"] {
         font-size: 2rem;
         color: #4F46E5;
+    }
+    
+    /* Pestañas estilizadas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 6px;
+        padding: 8px 16px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -29,6 +45,7 @@ st.markdown("""
 # Encabezado
 st.title("📚 Mi Biblioteca Personal")
 
+# Cargar la base de datos de libros
 @st.cache_data
 def cargar_datos():
     df = pd.read_excel("biblioteca.xlsx")
@@ -38,14 +55,15 @@ def cargar_datos():
 try:
     df = cargar_datos()
 
-    # Muestras estadísticas rápidas arriba
+    # Métricas destacadas en la parte superior
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total de Libros", len(df))
-    col_m2.metric("Autores Unicos", df['Autor'].nunique() if 'Autor' in df.columns else "N/A")
-    col_m3.metric("Estado App", "Conectado a IA 🤖")
+    col_m2.metric("Autores Únicos", df['Autor'].nunique() if 'Autor' in df.columns else len(df))
+    col_m3.metric("Estado IA", "Groq (Llama 3.3) ⚡")
 
     st.divider()
 
+    # Pestañas de navegación
     tab1, tab2, tab3 = st.tabs(["🔍 Buscador", "🤖 Asistente IA", "📋 Préstamos"])
 
     # --- PESTAÑA 1: BUSCADOR ---
@@ -54,41 +72,43 @@ try:
         busqueda = st.text_input("Buscar por cualquier campo (título, autor, tema...):")
         
         if busqueda:
-            mascara = df.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
+            mascara = df.astype(str).apply(
+                lambda row: row.str.contains(busqueda, case=False, na=False)
+            ).any(axis=1)
             resultado = df[mascara]
             st.dataframe(resultado, use_container_width=True)
         else:
             st.dataframe(df, use_container_width=True)
 
-    # --- PESTAÑA 2: CHAT CON IA ---
+    # --- PESTAÑA 2: CHAT CON IA (Groq API) ---
     with tab2:
         st.header("Pregunta a la IA sobre tu biblioteca")
         
-        api_key = st.secrets.get("GEMINI_API_KEY", "")
+        api_key = st.secrets.get("GROQ_API_KEY", "")
         
         if api_key:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-3.8-flash')
+            client = Groq(api_key=api_key)
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
+                # Filtrado para optimizar la búsqueda previa
                 palabras = pregunta.split()
                 mascara = df.astype(str).apply(
                     lambda row: any(p.lower() in str(row).lower() for p in palabras if len(p) > 3)
                 , axis=1)
                 
                 df_filtrado = df[mascara]
-                df_contexto = df_filtrado.head(80) if len(df_filtrado) >= 3 else df.head(80)
+                df_contexto = df_filtrado.head(100) if len(df_filtrado) >= 3 else df.head(100)
                 contexto_libros = df_contexto.to_csv(index=False)
                 
                 prompt = f"""
                 Eres el bibliotecario virtual de mi biblioteca personal. 
-                Esta es una lista seleccionada de mis libros con sus ubicaciones y detalles:
+                Esta es la lista seleccionada de mis libros con sus ubicaciones y detalles:
                 
                 {contexto_libros}
                 
-                Responde a la consulta del usuario basándote en la lista de libros. 
+                Responde a la consulta del usuario basándote únicamente en la lista de libros. 
                 Dile qué libro o libros le recomiendas y especifica exactamente en qué estantería, balda u otra ubicación se encuentran según los datos.
                 
                 Consulta del usuario: {pregunta}
@@ -96,14 +116,23 @@ try:
                 
                 try:
                     with st.spinner("Buscando en la estantería... 📖"):
-                        response = model.generate_content(prompt)
+                        chat_completion = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "user", 
+                                    "content": prompt
+                                }
+                            ],
+                            model="llama-3.3-70b-versatile",
+                        )
+                        
                         with st.container(border=True):
                             st.subheader("🤖 Respuesta del Bibliotecario")
-                            st.markdown(response.text)
+                            st.markdown(chat_completion.choices[0].message.content)
                 except Exception as err:
                     st.error(f"Error en la consulta a la IA: {err}")
         else:
-            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit.")
+            st.warning("Por favor, configura tu GROQ_API_KEY en los secretos de Streamlit (Settings > Secrets).")
 
     # --- PESTAÑA 3: CONTROL DE PRÉSTAMOS ---
     with tab3:
