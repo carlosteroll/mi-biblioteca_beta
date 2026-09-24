@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from google import genai
+import google.generativeai as genai
 
 # Configuración de la página
 st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚")
@@ -10,7 +10,6 @@ st.title("📚 Mi Biblioteca Personal")
 @st.cache_data
 def cargar_datos():
     df = pd.read_excel("biblioteca.xlsx")
-    # Limpiar espacios en blanco al inicio/final de los nombres de las columnas
     df.columns = df.columns.str.strip()
     return df
 
@@ -26,7 +25,6 @@ try:
         busqueda = st.text_input("Buscar por cualquier campo (título, autor, tema...):")
         
         if busqueda:
-            # Busca la palabra en todas las columnas de texto a la vez
             mascara = df.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
             resultado = df[mascara]
             st.dataframe(resultado, use_container_width=True)
@@ -40,9 +38,10 @@ try:
         api_key = st.secrets.get("GEMINI_API_KEY", "")
         
         if api_key:
-            client = genai.Client(api_key=api_key)
-            contexto_libros = df.to_string(index=False)
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
+            contexto_libros = df.to_string(index=False)
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("Consultar") and pregunta:
@@ -58,18 +57,14 @@ try:
                 Consulta: {pregunta}
                 """
                 
-                response = client.models.generate_content(
-                    model='gemini-1.5-flash',
-                    contents=prompt,
-                )
+                response = model.generate_content(prompt)
                 st.write(response.text)
         else:
-            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit (Settings > Secrets).")
+            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit.")
 
     # --- PESTAÑA 3: CONTROL DE PRÉSTAMOS ---
     with tab3:
         st.header("Gestión de Préstamos")
-        # Usa la primera columna del Excel como identificador del libro
         columna_titulo = df.columns[0]
         libro_seleccionado = st.selectbox("Selecciona un libro:", df[columna_titulo].values)
         persona = st.text_input("¿A quién se lo prestas?")
@@ -79,4 +74,3 @@ try:
 
 except Exception as e:
     st.error(f"Error al cargar el archivo Excel: {e}")
-    st.info("Asegúrate de que 'biblioteca.xlsx' esté subido correctamente a tu repositorio de GitHub.")
