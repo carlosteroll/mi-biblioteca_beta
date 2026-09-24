@@ -1,20 +1,19 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+from google import genai
 
 # Configuración de la página
 st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚")
 st.title("📚 Mi Biblioteca Personal")
 
-# 1. Cargar la base de datos (Excel o Google Sheets)
+# 1. Cargar la base de datos
 @st.cache_data
 def cargar_datos():
-    # Puedes usar un archivo local .xlsx o el enlace público de un Google Sheet
     return pd.read_excel("biblioteca.xlsx")
 
 df = cargar_datos()
 
-# Crear pestañas para organizar la app
+# Pestañas
 tab1, tab2, tab3 = st.tabs(["🔍 Buscador", "🤖 Asistente IA", "📋 Préstamos"])
 
 # --- PESTAÑA 1: BUSCADOR ---
@@ -36,14 +35,10 @@ with tab1:
 with tab2:
     st.header("Pregunta a la IA sobre tu biblioteca")
     
-    # Configurar API Key de Gemini
     api_key = st.secrets.get("GEMINI_API_KEY", "")
     
     if api_key:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
-        # Convertir la base de datos a texto para que la IA la entienda
+        client = genai.Client(api_key=api_key)
         contexto_libros = df.to_string(index=False)
         
         pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
@@ -55,13 +50,16 @@ with tab2:
             
             {contexto_libros}
             
-            Responde a la siguiente consulta del usuario basándote ÚNICAMENTE en la lista de libros proporcionada. 
+            Responde a la consulta del usuario basándote en la lista de libros. 
             Dile qué libro o libros le recomiendas y especifica en qué Estantería y Fila/Balda se encuentran.
             
-            Consulta del usuario: {pregunta}
+            Consulta: {pregunta}
             """
             
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+            )
             st.write(response.text)
     else:
         st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit.")
