@@ -21,15 +21,14 @@ try:
 
     # --- PESTAÑA 1: BUSCADOR ---
     with tab1:
-        st.header(///"///¿QUÉ LIBRO BUSCAS?")
+        st.header("¿QUÉ LIBRO BUSCAS?")
         busqueda = st.text_input("Buscar por cualquier campo (título, autor, tema...):")
         
         if busqueda:
             mascara = df.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
             resultado = df[mascara]
             st.dataframe(resultado, use_container_width=True)
-        else:
-            st.dataframe(df, use_container_width=True)
+        
 
     # --- PESTAÑA 2: CHAT CON IA ---
     with tab2:
@@ -92,11 +91,7 @@ try:
             st.success(f"Registrado: '{libro_seleccionado}' prestado a {persona}.")
 
     with tab4:
-        @st.cache_data
-        def cargar_datos():
-            df = pd.read_excel("biblioteca.xlsx")
-            df.columns = df.columns.str.strip()
-            return df
+        st.dataframe(df, use_container_width=True)
 
 
 except Exception as e:
