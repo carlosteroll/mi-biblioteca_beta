@@ -122,7 +122,7 @@ try:
                                     "content": prompt
                                 }
                             ],
-                            model="llama3-70b-8192",  # <--- Modelo corregido
+                            model="llama-3.1-8b-instant",  # <--- Modelo activo y ultra rápido
                         )
                         
                         with st.container(border=True):
