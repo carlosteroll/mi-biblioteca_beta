@@ -1,6 +1,4 @@
 streamlit
 pandas
 openpyxl
-google-generativeai
-streamlit-lottie
-groq
+google-genai
