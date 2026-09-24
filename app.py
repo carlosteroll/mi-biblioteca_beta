@@ -40,44 +40,46 @@ try:
         
         if api_key:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-3.8-flash')
-            
-            # Reducimos el tamaño del texto convirtiendo el DataFrame a un formato más compacto
-            contexto_libros = df.to_csv(index=False)
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("Consultar") and pregunta:
+                # Filtrado ligero para enviar solo las primeras 100 filas o coincidencias y no agotar la cuota
+                palabras = pregunta.split()
+                # Buscamos filas donde aparezca alguna palabra clave de la pregunta
+                mascara = df.astype(str).apply(
+                    lambda row: any(p.lower() in str(row).lower() for p in palabras if len(p) > 3)
+                , axis=1)
+                
+                df_filtrado = df[mascara]
+                
+                # Si el filtro encuentra muy pocos resultados, usamos las primeras 80 filas para darle contexto amplio
+                if len(df_filtrado) < 3:
+                    df_contexto = df.head(80)
+                else:
+                    df_contexto = df_filtrado.head(80)
+                
+                contexto_libros = df_contexto.to_csv(index=False)
+                
                 prompt = f"""
                 Eres el bibliotecario virtual de mi biblioteca personal. 
-                Esta es la lista completa de mis libros con sus ubicaciones y detalles (en formato CSV):
+                Esta es una lista seleccionada de mis libros con sus ubicaciones y detalles:
                 
                 {contexto_libros}
                 
-                Responde a la consulta del usuario basándote únicamente en la lista de libros anterior. 
-                Dile qué libro o libros le recomiendas y especifica exactamente en qué estantería, balda u otra ubicación se encuentran según los datos.
+                Responde a la siguiente consulta del usuario basándote en la lista de libros anterior. 
+                Dile qué libro o libros le recomiendas de la lista y especifica en qué estantería, balda u otra ubicación se encuentran según los datos.
                 
                 Consulta del usuario: {pregunta}
                 """
                 
-                # Reintento automático en caso de sobrepasar el límite de tasa por un par de segundos
-                exito = False
-                intentos = 0
-                while not exito and intentos < 3:
-                    try:
-                        with st.spinner("Consultando a la IA..."):
-                            response = model.generate_content(prompt)
-                            st.write(response.text)
-                            exito = True
-                    except Exception as err:
-                        if "429" in str(err):
-                            intentos += 1
-                            time.sleep(2)  # Esperar 2 segundos antes de reintentar
-                        else:
-                            st.error(f"Error en la consulta: {err}")
-                            break
-                if not exito and intentos >= 3:
-                    st.warning("El servidor de IA está saturado momentáneamente. Por favor, espera unos segundos y vuelve a pulsar Consultar.")
+                try:
+                    with st.spinner("Consultando a la IA..."):
+                        response = model.generate_content(prompt)
+                        st.write(response.text)
+                except Exception as err:
+                    st.error(f"Error en la consulta a la IA: {err}")
         else:
             st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit (Settings > Secrets).")
 
