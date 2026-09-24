@@ -39,7 +39,9 @@ try:
         
         if api_key:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Usamos la versión de Gemini actualmente soportada por la API
+            model = genai.GenerativeModel('gemini-2.5-flash')
             
             contexto_libros = df.to_string(index=False)
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
