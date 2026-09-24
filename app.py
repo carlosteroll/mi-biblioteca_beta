@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from groq import Groq
+from google import genai
 
 # 1. Configuración de la página
 st.set_page_config(
@@ -9,10 +9,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. CSS Personalizado para animaciones y diseño
+# 2. CSS Personalizado
 st.markdown("""
     <style>
-    /* Estilo general y animaciones de botones */
     .stButton>button {
         border-radius: 10px;
         font-weight: bold;
@@ -24,14 +23,10 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
-    
-    /* Contadores elevados */
     [data-testid="stMetricValue"] {
         font-size: 2rem;
         color: #4F46E5;
     }
-    
-    /* Pestañas estilizadas */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
@@ -42,10 +37,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Encabezado
 st.title("📚 Mi Biblioteca Personal")
 
-# Cargar la base de datos de libros
 @st.cache_data
 def cargar_datos():
     df = pd.read_excel("biblioteca.xlsx")
@@ -55,15 +48,13 @@ def cargar_datos():
 try:
     df = cargar_datos()
 
-    # Métricas destacadas en la parte superior
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total de Libros", len(df))
     col_m2.metric("Autores Únicos", df['Autor'].nunique() if 'Autor' in df.columns else len(df))
-    col_m3.metric("Estado IA", "Groq (Llama 3.3) ⚡")
+    col_m3.metric("Estado IA", "Gemini Activo 🤖")
 
     st.divider()
 
-    # Pestañas de navegación
     tab1, tab2, tab3 = st.tabs(["🔍 Buscador", "🤖 Asistente IA", "📋 Préstamos"])
 
     # --- PESTAÑA 1: BUSCADOR ---
@@ -80,58 +71,52 @@ try:
         else:
             st.dataframe(df, use_container_width=True)
 
-   # --- PESTAÑA 2: CHAT CON IA (Groq API) ---
+    # --- PESTAÑA 2: CHAT CON IA (Google Gemini API) ---
     with tab2:
         st.header("Pregunta a la IA sobre tu biblioteca")
         
-        api_key = st.secrets.get("GROQ_API_KEY", "")
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
         
         if api_key:
-            client = Groq(api_key=api_key)
+            client = genai.Client(api_key=api_key)
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                palabras = pregunta.split()
-                mascara = df.astype(str).apply(
-                    lambda row: any(p.lower() in str(row).lower() for p in palabras if len(p) > 3)
-                , axis=1)
+                # Comprimimos la información enviando solo lo necesario para no agotar la cuota de tokens
+                columnas_utiles = [c for c in df.columns if any(k in c.lower() for k in ['títu', 'titu', 'autor', 'tema', 'estant', 'fila', 'balda', 'ubic'])]
+                df_resumen = df[columnas_utiles] if len(columnas_utiles) > 0 else df
                 
-                df_filtrado = df[mascara]
-                df_contexto = df_filtrado.head(100) if len(df_filtrado) >= 3 else df.head(100)
-                contexto_libros = df_contexto.to_csv(index=False)
+                # Convertimos a JSON compacto para reducir el tamaño del prompt en un 70%
+                contexto_libros = df_resumen.to_json(orient="records", force_ascii=False)
                 
                 prompt = f"""
                 Eres el bibliotecario virtual de mi biblioteca personal. 
-                Esta es la lista seleccionada de mis libros con sus ubicaciones y detalles:
+                Esta es la lista completa de mis libros con sus ubicaciones (en formato JSON):
                 
                 {contexto_libros}
                 
-                Responde a la consulta del usuario basándote únicamente en la lista de libros. 
-                Dile qué libro o libros le recomiendas y especifica exactamente en qué estantería, balda u otra ubicación se encuentran según los datos.
+                Responde a la consulta del usuario basándote en la lista de libros. 
+                Dile qué libro o libros le recomiendas y especifica en qué estantería, balda u otra ubicación se encuentran según los datos.
                 
                 Consulta del usuario: {pregunta}
                 """
                 
                 try:
                     with st.spinner("Buscando en la estantería... 📖"):
-                        chat_completion = client.chat.completions.create(
-                            messages=[
-                                {
-                                    "role": "user", 
-                                    "content": prompt
-                                }
-                            ],
-                            model="llama-3.3-70b-versatile",  # <--- Modelo activo y ultra rápido
+                        response = client.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=prompt,
                         )
                         
                         with st.container(border=True):
                             st.subheader("🤖 Respuesta del Bibliotecario")
-                            st.markdown(chat_completion.choices[0].message.content)
+                            st.markdown(response.text)
                 except Exception as err:
                     st.error(f"Error en la consulta a la IA: {err}")
         else:
-            st.warning("Por favor, configura tu GROQ_API_KEY en los secretos de Streamlit (Settings > Secrets).")
+            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit (Settings > Secrets).")
+
     # --- PESTAÑA 3: CONTROL DE PRÉSTAMOS ---
     with tab3:
         st.header("Gestión de Préstamos")
