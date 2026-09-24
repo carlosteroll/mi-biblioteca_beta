@@ -3,8 +3,8 @@ import pandas as pd
 import google.generativeai as genai
 
 # Configuración de la página
-st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚")
-st.title("📚 Mi Biblioteca Personal")
+st.set_page_config(page_title="Mi Biblioteca Personal")
+st.title("LIBRERIA DE FRANCISCO TEROL")
 
 # 1. Cargar la base de datos
 @st.cache_data
@@ -17,11 +17,11 @@ try:
     df = cargar_datos()
 
     # Pestañas
-    tab1, tab2, tab3 = st.tabs(["🔍 Buscador", "🤖 Asistente IA", "📋 Préstamos"])
+    tab1, tab2, tab3, tab4 = st.tabs([" Buscador", " Asistente IA", " Préstamos","Todos Los libros"])
 
     # --- PESTAÑA 1: BUSCADOR ---
     with tab1:
-        st.header("Buscador de Libros")
+        st.header("¿QUÉ LIBRO BUSCAS?")
         busqueda = st.text_input("Buscar por cualquier campo (título, autor, tema...):")
         
         if busqueda:
@@ -90,6 +90,14 @@ try:
         
         if st.button("Registrar Préstamo"):
             st.success(f"Registrado: '{libro_seleccionado}' prestado a {persona}.")
+
+    with tab4:
+        @st.cache_data
+        def cargar_datos():
+            df = pd.read_excel("biblioteca.xlsx")
+            df.columns = df.columns.str.strip()
+            return df
+
 
 except Exception as e:
     st.error(f"Error al cargar el archivo Excel: {e}")
