@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
-import time
 
 # Configuración de la página
 st.set_page_config(page_title="Mi Biblioteca Personal", page_icon="📚")
@@ -40,21 +39,20 @@ try:
         
         if api_key:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Modelo actualizado de Gemini exigido por la API
+            model = genai.GenerativeModel('gemini-3.8-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("Consultar") and pregunta:
-                # Filtrado ligero para enviar solo las primeras 100 filas o coincidencias y no agotar la cuota
+                # Filtrado ligero para no sobrepasar el límite de tokens por consulta
                 palabras = pregunta.split()
-                # Buscamos filas donde aparezca alguna palabra clave de la pregunta
                 mascara = df.astype(str).apply(
                     lambda row: any(p.lower() in str(row).lower() for p in palabras if len(p) > 3)
                 , axis=1)
                 
                 df_filtrado = df[mascara]
                 
-                # Si el filtro encuentra muy pocos resultados, usamos las primeras 80 filas para darle contexto amplio
                 if len(df_filtrado) < 3:
                     df_contexto = df.head(80)
                 else:
