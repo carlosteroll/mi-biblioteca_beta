@@ -40,8 +40,8 @@ try:
         if api_key:
             genai.configure(api_key=api_key)
             
-            # Usamos la versión de Gemini actualmente soportada por la API
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Usamos el modelo más reciente requerido por la API de Google
+            model = genai.GenerativeModel('gemini-3.8-flash')
             
             contexto_libros = df.to_string(index=False)
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
@@ -62,7 +62,7 @@ try:
                 response = model.generate_content(prompt)
                 st.write(response.text)
         else:
-            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit.")
+            st.warning("Por favor, configura tu GEMINI_API_KEY en los secretos de Streamlit (Settings > Secrets).")
 
     # --- PESTAÑA 3: CONTROL DE PRÉSTAMOS ---
     with tab3:
