@@ -21,7 +21,7 @@ try:
 
     # --- PESTAÑA 1: BUSCADOR ---
     with tab1:
-        st.header("¿QUÉ LIBRO BUSCAS?")
+        st.header(///"///¿QUÉ LIBRO BUSCAS?")
         busqueda = st.text_input("Buscar por cualquier campo (título, autor, tema...):")
         
         if busqueda:
