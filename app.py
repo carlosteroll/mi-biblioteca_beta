@@ -80,7 +80,7 @@ try:
         else:
             st.dataframe(df, use_container_width=True)
 
-    # --- PESTAÑA 2: CHAT CON IA (Groq API) ---
+   # --- PESTAÑA 2: CHAT CON IA (Groq API) ---
     with tab2:
         st.header("Pregunta a la IA sobre tu biblioteca")
         
@@ -92,7 +92,6 @@ try:
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                # Filtrado para optimizar la búsqueda previa
                 palabras = pregunta.split()
                 mascara = df.astype(str).apply(
                     lambda row: any(p.lower() in str(row).lower() for p in palabras if len(p) > 3)
@@ -123,7 +122,7 @@ try:
                                     "content": prompt
                                 }
                             ],
-                            model="llama-3.3-70b-versatile",
+                            model="llama3-70b-8192",  # <--- Modelo corregido
                         )
                         
                         with st.container(border=True):
@@ -133,7 +132,6 @@ try:
                     st.error(f"Error en la consulta a la IA: {err}")
         else:
             st.warning("Por favor, configura tu GROQ_API_KEY en los secretos de Streamlit (Settings > Secrets).")
-
     # --- PESTAÑA 3: CONTROL DE PRÉSTAMOS ---
     with tab3:
         st.header("Gestión de Préstamos")
