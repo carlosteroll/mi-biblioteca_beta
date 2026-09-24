@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. CSS Personalizado
+# 2. Estilos visuales
 st.markdown("""
     <style>
     .stButton>button {
@@ -51,7 +51,7 @@ try:
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total de Libros", len(df))
     col_m2.metric("Autores Únicos", df['Autor'].nunique() if 'Autor' in df.columns else len(df))
-    col_m3.metric("Estado IA", "Gemini Activo 🤖")
+    col_m3.metric("Estado IA", "Gemini 1.5 Flash 🤖")
 
     st.divider()
 
@@ -83,11 +83,11 @@ try:
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                # Comprimimos la información enviando solo lo necesario para no agotar la cuota de tokens
+                # Comprimimos la información enviando solo lo necesario
                 columnas_utiles = [c for c in df.columns if any(k in c.lower() for k in ['títu', 'titu', 'autor', 'tema', 'estant', 'fila', 'balda', 'ubic'])]
                 df_resumen = df[columnas_utiles] if len(columnas_utiles) > 0 else df
                 
-                # Convertimos a JSON compacto para reducir el tamaño del prompt en un 70%
+                # Formato JSON compacto para reducir el uso de palabras/tokens
                 contexto_libros = df_resumen.to_json(orient="records", force_ascii=False)
                 
                 prompt = f"""
@@ -104,8 +104,9 @@ try:
                 
                 try:
                     with st.spinner("Buscando en la estantería... 📖"):
+                        # Modelo oficial estándar gemini-1.5-flash
                         response = client.models.generate_content(
-                            model='gemini-3.8-flash',
+                            model='gemini-1.5-flash',
                             contents=prompt,
                         )
                         
