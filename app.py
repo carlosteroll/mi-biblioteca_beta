@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from google import genai
+import google.generativeai as genai
 
 # 1. Configuración de la página
 st.set_page_config(
@@ -51,7 +51,7 @@ try:
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total de Libros", len(df))
     col_m2.metric("Autores Únicos", df['Autor'].nunique() if 'Autor' in df.columns else len(df))
-    col_m3.metric("Estado IA", "Gemini 1.5 Flash 🤖")
+    col_m3.metric("Estado IA", "Gemini Listo 🤖")
 
     st.divider()
 
@@ -71,28 +71,29 @@ try:
         else:
             st.dataframe(df, use_container_width=True)
 
-    # --- PESTAÑA 2: CHAT CON IA (Google Gemini API) ---
+    # --- PESTAÑA 2: CHAT CON IA ---
     with tab2:
         st.header("Pregunta a la IA sobre tu biblioteca")
         
         api_key = st.secrets.get("GEMINI_API_KEY", "")
         
         if api_key:
-            client = genai.Client(api_key=api_key)
+            genai.configure(api_key=api_key)
+            
+            # Usamos la API estándar estable
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                # Comprimimos la información enviando solo lo necesario
+                # Comprimimos el archivo enviando únicamente las columnas relevantes en formato CSV
                 columnas_utiles = [c for c in df.columns if any(k in c.lower() for k in ['títu', 'titu', 'autor', 'tema', 'estant', 'fila', 'balda', 'ubic'])]
                 df_resumen = df[columnas_utiles] if len(columnas_utiles) > 0 else df
-                
-                # Formato JSON compacto para reducir el uso de palabras/tokens
-                contexto_libros = df_resumen.to_json(orient="records", force_ascii=False)
+                contexto_libros = df_resumen.to_csv(index=False)
                 
                 prompt = f"""
                 Eres el bibliotecario virtual de mi biblioteca personal. 
-                Esta es la lista completa de mis libros con sus ubicaciones (en formato JSON):
+                Esta es la lista completa de mis libros con sus ubicaciones (formato CSV):
                 
                 {contexto_libros}
                 
@@ -104,11 +105,7 @@ try:
                 
                 try:
                     with st.spinner("Buscando en la estantería... 📖"):
-                        # Modelo oficial estándar gemini-1.5-flash
-                        response = client.models.generate_content(
-                            model='gemini-1.5-flash',
-                            contents=prompt,
-                        )
+                        response = model.generate_content(prompt)
                         
                         with st.container(border=True):
                             st.subheader("🤖 Respuesta del Bibliotecario")
