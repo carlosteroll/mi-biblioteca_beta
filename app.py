@@ -9,9 +9,40 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Estilos visuales
+# 2. CSS Personalizado (Sin marcas de agua, sin barras de Streamlit ni botones flotantes inferiores)
 st.markdown("""
     <style>
+    /* Oculta el menú desplegable y la cabecera de Streamlit */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Oculta botones e iconos flotantes en la esquina inferior derecha */
+    [data-testid="stStatusWidget"],
+    iframe[title*="badge"],
+    div[class*="floating"],
+    a[href*="streamlit.io"],
+    .stApp > div:has(button) > div:last-child {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    /* Elimina cualquier elemento fijo posicionado abajo a la derecha */
+    div[style*="position: fixed"][style*="bottom"],
+    div[style*="position:absolute"][style*="bottom"],
+    div[style*="bottom: 0px"],
+    div[style*="bottom: 10px"],
+    div[style*="bottom: 20px"] {
+        display: none !important;
+    }
+
+    /* Ajuste de espacio para pantalla móvil */
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
+    }
+    
+    /* Botones y métricas estilizados */
     .stButton>button {
         border-radius: 10px;
         font-weight: bold;
@@ -80,13 +111,13 @@ try:
         if api_key:
             genai.configure(api_key=api_key)
             
-            # Usamos la API estándar estable
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Modelo activo oficial
+            model = genai.GenerativeModel('gemini-2.0-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                # Comprimimos el archivo enviando únicamente las columnas relevantes en formato CSV
+                # Comprimimos el inventario para no saturar la cuota de tokens
                 columnas_utiles = [c for c in df.columns if any(k in c.lower() for k in ['títu', 'titu', 'autor', 'tema', 'estant', 'fila', 'balda', 'ubic'])]
                 df_resumen = df[columnas_utiles] if len(columnas_utiles) > 0 else df
                 contexto_libros = df_resumen.to_csv(index=False)
@@ -127,39 +158,3 @@ try:
 
 except Exception as e:
     st.error(f"Error al cargar el archivo Excel: {e}")
-    # CSS Personalizado (Limpio y sin marcas de agua de Streamlit)
-st.markdown("""
-    <style>
-    /* Oculta el menú desplegable de arriba a la derecha (tres puntos / hamburguesa) */
-    #MainMenu {visibility: hidden;}
-    
-    /* Oculta la barra de encabezado / header de Streamlit */
-    header {visibility: hidden;}
-    
-    /* Oculta el pie de página ("Made with Streamlit") */
-    footer {visibility: hidden;}
-    
-    /* Ajusta el margen superior para aprovechar todo el espacio */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    
-    /* Estilos de botones y métricas */
-    .stButton>button {
-        border-radius: 10px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        background-color: #4F46E5;
-        color: white;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 2rem;
-        color: #4F46E5;
-    }
-    </style>
-""", unsafe_allow_html=True)
