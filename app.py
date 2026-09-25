@@ -127,3 +127,39 @@ try:
 
 except Exception as e:
     st.error(f"Error al cargar el archivo Excel: {e}")
+    # CSS Personalizado (Limpio y sin marcas de agua de Streamlit)
+st.markdown("""
+    <style>
+    /* Oculta el menú desplegable de arriba a la derecha (tres puntos / hamburguesa) */
+    #MainMenu {visibility: hidden;}
+    
+    /* Oculta la barra de encabezado / header de Streamlit */
+    header {visibility: hidden;}
+    
+    /* Oculta el pie de página ("Made with Streamlit") */
+    footer {visibility: hidden;}
+    
+    /* Ajusta el margen superior para aprovechar todo el espacio */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    
+    /* Estilos de botones y métricas */
+    .stButton>button {
+        border-radius: 10px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        background-color: #4F46E5;
+        color: white;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        color: #4F46E5;
+    }
+    </style>
+""", unsafe_allow_html=True)
