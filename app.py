@@ -9,40 +9,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. CSS Personalizado (Sin marcas de agua, sin barras de Streamlit ni botones flotantes inferiores)
+# 2. Estilos visuales
 st.markdown("""
     <style>
-    /* Oculta el menú desplegable y la cabecera de Streamlit */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    /* Oculta botones e iconos flotantes en la esquina inferior derecha */
-    [data-testid="stStatusWidget"],
-    iframe[title*="badge"],
-    div[class*="floating"],
-    a[href*="streamlit.io"],
-    .stApp > div:has(button) > div:last-child {
-        display: none !important;
-        visibility: hidden !important;
-    }
-    
-    /* Elimina cualquier elemento fijo posicionado abajo a la derecha */
-    div[style*="position: fixed"][style*="bottom"],
-    div[style*="position:absolute"][style*="bottom"],
-    div[style*="bottom: 0px"],
-    div[style*="bottom: 10px"],
-    div[style*="bottom: 20px"] {
-        display: none !important;
-    }
-
-    /* Ajuste de espacio para pantalla móvil */
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 1rem;
-    }
-    
-    /* Botones y métricas estilizados */
     .stButton>button {
         border-radius: 10px;
         font-weight: bold;
@@ -82,7 +51,7 @@ try:
     col_m1, col_m2, col_m3 = st.columns(3)
     col_m1.metric("Total de Libros", len(df))
     col_m2.metric("Autores Únicos", df['Autor'].nunique() if 'Autor' in df.columns else len(df))
-    col_m3.metric("Estado IA", "Gemini Listo 🤖")
+    col_m3.metric("Estado IA", "Gemini 2.0 Flash 🤖")
 
     st.divider()
 
@@ -111,13 +80,12 @@ try:
         if api_key:
             genai.configure(api_key=api_key)
             
-            # Modelo activo oficial
+            # Modelo activo oficial de la API de Google
             model = genai.GenerativeModel('gemini-2.0-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
             if st.button("✨ Consultar a la IA") and pregunta:
-                # Comprimimos el inventario para no saturar la cuota de tokens
                 columnas_utiles = [c for c in df.columns if any(k in c.lower() for k in ['títu', 'titu', 'autor', 'tema', 'estant', 'fila', 'balda', 'ubic'])]
                 df_resumen = df[columnas_utiles] if len(columnas_utiles) > 0 else df
                 contexto_libros = df_resumen.to_csv(index=False)
