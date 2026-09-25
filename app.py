@@ -81,7 +81,7 @@ try:
             genai.configure(api_key=api_key)
             
             # Usamos la API estándar estable
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-3.8-flash')
             
             pregunta = st.text_input("¿Qué libro estás buscando o qué tema te interesa?")
             
